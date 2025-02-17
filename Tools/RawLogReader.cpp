@@ -22,12 +22,13 @@
 RawLogReader::RawLogReader(std::string file, bool flipColors) : LogReader(file, flipColors) {
   assert(pangolin::FileExists(file.c_str()));
 
-  fp = fopen(file.c_str(), "rb");
+  fp = fopen(file.c_str(), "rb"); // Binary log file passed to the program with flag -l
 
   currentFrame = 0;
 
   auto tmp = fread(&numFrames, sizeof(int32_t), 1, fp);
   assert(tmp);
+  std::cout<<"num of frames: " << numFrames << " num of pixels: " << numPixels << std::endl;
 
   depthReadBuffer = new uint8_t[numPixels * 2];
   imageReadBuffer = new uint8_t[numPixels * 3];
@@ -55,46 +56,101 @@ void RawLogReader::getBack() {
 }
 
 void RawLogReader::getNext() {
+  std::cout << "In RawLogReader"<< std::endl;
+
   filePointers.push(ftell(fp));
+  std::cout << "finished pushing file pointer"<< std::endl;
 
   getCore();
 }
 
 void RawLogReader::getCore() {
+  std::cout << "Inside core reader"<< std::endl;
   auto tmp = fread(&timestamp, sizeof(int64_t), 1, fp);
   assert(tmp);
 
   tmp = fread(&depthSize, sizeof(int32_t), 1, fp);
   assert(tmp);
+  std::cout << "DepthSize: "<< depthSize << std::endl;
+  std::cout << "DepthSize assert done"<< std::endl;
+
+
   tmp = fread(&imageSize, sizeof(int32_t), 1, fp);
   assert(tmp);
+  std::cout << "imageSize: "<< imageSize << std::endl;
+  std::cout << "imageSize assert done"<< std::endl;
+
+
+  std::cout << "Reading depth buffer...." << std::endl;
+
+  depthReadBuffer = static_cast<uint8_t*>(std::malloc(depthSize));
+  if (depthReadBuffer == nullptr) {
+      std::cerr << "Error: Depth Memory allocation failed." << std::endl;
+      // Handle the error appropriately, e.g., return or throw an exception
+  }
 
   tmp = fread(depthReadBuffer, depthSize, 1, fp);
   assert(tmp);
+  std::cout << "Depth buffer assert done"<< std::endl;
+
+
+  imageReadBuffer = static_cast<uint8_t*>(std::malloc(imageSize));
+  if (imageReadBuffer == nullptr) {
+      std::cerr << "Error: Image Memory allocation failed." << std::endl;
+      // Handle the error appropriately, e.g., return or throw an exception
+  }
+
 
   if (imageSize > 0) {
     tmp = fread(imageReadBuffer, imageSize, 1, fp);
     assert(tmp);
+    std::cout << "Image buffer assert done"<< std::endl;
   }
+  std::cout << "Passed Assert statements"<< std::endl;
 
-  if (depthSize == numPixels * 2) {
-    memcpy(&decompressionBufferDepth[0], depthReadBuffer, numPixels * 2);
-  } else {
-    unsigned long decompLength = numPixels * 2;
-    uncompress(
-        &decompressionBufferDepth[0],
-        (unsigned long*)&decompLength,
-        (const Bytef*)depthReadBuffer,
-        depthSize);
-  }
+  // if (depthSize == numPixels * 2) {
+  //   std::cout << "Depth condition 1"<< std::endl;
+  //   memcpy(&decompressionBufferDepth[0], depthReadBuffer, numPixels * 2);
+  // } else {
+  //   std::cout << "Depth condition 2: " << depthSize << " " << numPixels << std::endl;
+  //   unsigned long decompLength = numPixels * 2;
+  //   uncompress(
+  //       &decompressionBufferDepth[0],
+  //       (unsigned long*)&decompLength,
+  //       (const Bytef*)depthReadBuffer,
+  //       depthSize);
+  // }
 
-  if (imageSize == numPixels * 3) {
-    memcpy(&decompressionBufferImage[0], imageReadBuffer, numPixels * 3);
-  } else if (imageSize > 0) {
-    jpeg.readData(imageReadBuffer, imageSize, (uint8_t*)&decompressionBufferImage[0]);
-  } else {
-    memset(&decompressionBufferImage[0], 0, numPixels * 3);
-  }
+
+  // if (depthSize == numPixels * 2) {
+  //   std::cout << "Depth condition 1: " << depthSize << " " << numPixels << std::endl;
+  //   memcpy(&decompressionBufferDepth[0], depthReadBuffer, numPixels * 2);
+  // }
+
+  // if (imageSize == numPixels * 3) {
+  //   std::cout << "Image condition 1: " << imageSize << " " << numPixels << std::endl;
+  //   memcpy(&decompressionBufferImage[0], imageReadBuffer, numPixels * 3);
+  // } else if (imageSize > 0) {
+  //   std::cout << "Image condition 2: " << imageSize << " " << numPixels << std::endl;
+  //   //jpeg.readData(imageReadBuffer, imageSize, (uint8_t*)&decompressionBufferImage[0]);
+
+  //   unsigned long decompLength = numPixels * 2;
+  //   uncompress(
+  //       &decompressionBufferImage[0],
+  //       (unsigned long*)&decompLength,
+  //       (const Bytef*)imageReadBuffer,
+  //       imageSize);
+
+  // } else {
+  //   memset(&decompressionBufferImage[0], 0, numPixels * 3);
+  // }
+
+  std::cout << "Depth condition 1: " << depthSize << " " << numPixels << std::endl;
+  std::cout << "Image condition 2: " << imageSize << " " << numPixels << std::endl;
+
+  memcpy(&decompressionBufferDepth[0], depthReadBuffer, numPixels * 2);
+  memcpy(&decompressionBufferImage[0], imageReadBuffer, numPixels * 3);
+
 
   depth = (uint16_t*)decompressionBufferDepth;
   rgb = (uint8_t*)&decompressionBufferImage[0];
@@ -106,6 +162,7 @@ void RawLogReader::getCore() {
   }
 
   currentFrame++;
+  std::cout << "Finished core reader"<< std::endl;
 }
 
 void RawLogReader::fastForward(int frame) {
