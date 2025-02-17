@@ -34,6 +34,7 @@ MainController::MainController(int argc, char* argv[])
   std::string calibrationFile;
   Parse::get().arg(argc, argv, "-cal", calibrationFile);
 
+// For TUM Dataset
   Resolution::getInstance(640, 480);
 
   if (calibrationFile.length()) {
@@ -42,13 +43,24 @@ MainController::MainController(int argc, char* argv[])
     Intrinsics::getInstance(528, 528, 320, 240);
   }
 
-  Parse::get().arg(argc, argv, "-l", logFile);
+
+  // // For Hotel Dataset
+  // Resolution::getInstance(1280, 720);
+
+  // if (calibrationFile.length()) {
+  //   loadCalibration(calibrationFile);
+  // } else {
+  //   Intrinsics::getInstance(605, 605, 635, 366);
+  // }
+
+
+  Parse::get().arg(argc, argv, "-l", logFile); //Fetch the name of the logfile by parsing the arguments passed
 
   if (logFile.length()) {
-    logReader = new RawLogReader(logFile, Parse::get().arg(argc, argv, "-f", empty) > -1);
+    logReader = new RawLogReader(logFile, Parse::get().arg(argc, argv, "-f", empty) > -1); // Database Reader
   } else {
     bool flipColors = Parse::get().arg(argc, argv, "-f", empty) > -1;
-    logReader = new LiveLogReader(logFile, flipColors, LiveLogReader::CameraType::OpenNI2);
+    logReader = new LiveLogReader(logFile, flipColors, LiveLogReader::CameraType::OpenNI2); // Live camera reader
 
     good = ((LiveLogReader*)logReader)->cam->ok();
 
@@ -120,6 +132,8 @@ MainController::MainController(int argc, char* argv[])
       Resolution::getInstance().height(),
       Resolution::getInstance().width() / 2,
       Resolution::getInstance().height() / 2);
+
+  std::cout << "Done Parsing the klg file!!!" << std::endl;
 }
 
 MainController::~MainController() {
@@ -191,7 +205,7 @@ void MainController::launch() {
           fernThresh,
           so3,
           frameToFrameRGB,
-          logReader->getFile());
+          logReader->getFile()); // Pass logfile to efusion object here
     } else {
       break;
     }
@@ -204,6 +218,10 @@ void MainController::run() {
     if (!gui->pause->Get() || pangolin::Pushed(*gui->step)) {
       if ((logReader->hasMore() || rewind) && eFusion->getTick() < end) {
         TICK("LogRead");
+
+
+        std::cout << "Reading next frame..."<< std::endl;
+
         if (rewind) {
           if (!logReader->hasMore()) {
             logReader->getBack();
