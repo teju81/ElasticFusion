@@ -34,15 +34,24 @@ MainController::MainController(int argc, char* argv[])
   std::string calibrationFile;
   Parse::get().arg(argc, argv, "-cal", calibrationFile);
 
-// For TUM Dataset
-  Resolution::getInstance(640, 480);
+// // For TUM Dataset
+//   Resolution::getInstance(640, 480);
 
-  if (calibrationFile.length()) {
-    loadCalibration(calibrationFile);
-  } else {
-    Intrinsics::getInstance(528, 528, 320, 240);
-  }
+//   if (calibrationFile.length()) {
+//     loadCalibration(calibrationFile);
+//   } else {
+//     Intrinsics::getInstance(528, 528, 320, 240);
+//   }
 
+
+// // For scannetpp Dataset
+//   Resolution::getInstance(640, 480);
+
+//   if (calibrationFile.length()) {
+//     loadCalibration(calibrationFile);
+//   } else {
+//     Intrinsics::getInstance(480, 480, 320, 240);
+//   }
 
   // // For Hotel Dataset
   // Resolution::getInstance(1280, 720);
@@ -53,6 +62,15 @@ MainController::MainController(int argc, char* argv[])
   //   Intrinsics::getInstance(605, 605, 635, 366);
   // }
 
+
+  // For Replica Dataset
+  Resolution::getInstance(1200, 680);
+
+  if (calibrationFile.length()) {
+    loadCalibration(calibrationFile);
+  } else {
+    Intrinsics::getInstance(600, 600, 599, 339);
+  }
 
   Parse::get().arg(argc, argv, "-l", logFile); //Fetch the name of the logfile by parsing the arguments passed
 
